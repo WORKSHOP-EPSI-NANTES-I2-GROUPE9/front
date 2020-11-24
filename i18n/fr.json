@@ -1,3 +1,10 @@
 {
-  
+    "nav": {
+        "home": "Accueil"
+    },
+    "app": {
+        "description": "Ecrivez votre texte en dessous",
+        "send": "Envoyer",
+        "result": "Resultat"
+    }
 }
