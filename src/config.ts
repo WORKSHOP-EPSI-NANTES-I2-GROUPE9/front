@@ -1,1 +1,1 @@
-export const API_URL = "http://localhost:8080";
+export const API_URL = "https://prediction.k8s.jeremychauvin.fr/api/v1/analyses";
