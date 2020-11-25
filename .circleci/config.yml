@@ -7,9 +7,6 @@ executors:
   front:
     docker:
       - image: circleci/node
-  docker:
-    docker:
-      - image: docker:stable
 
 jobs:
   front-install-dependencies:
@@ -60,22 +57,6 @@ jobs:
       - run:
           name: unit-test
           command: npm run test:unit
-  front-docker-build-and-push:
-    executor: docker
-    steps:
-      - checkout
-      - setup_remote_docker:
-          version: 19.03.13
-          docker_layer_caching: true
-      - run:
-          name: docker login
-          command: docker login -u $DOCKERHUB_USERNAME -p $DOCKERHUB_PASS
-      - run:
-          name: docker build
-          command: docker build -t ked57/workshop-front .
-      - run:
-          name: docker push
-          command: docker push ked57/workshop-front
 
 workflows:
   qc-test-deploy:
@@ -117,10 +98,3 @@ workflows:
           browser: firefox
           parallel: true
           parallelism: 2
-      - front-docker-build-and-push:
-          requires:
-            - firefox-cypress-run
-            - chrome-cypress-run
-            - front-unit-test
-            - front-build
-            - front-qc-prettier
