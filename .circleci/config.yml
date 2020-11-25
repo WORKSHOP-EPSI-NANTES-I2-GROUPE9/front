@@ -1,0 +1,126 @@
+version: 2.1
+
+orbs:
+  cypress: cypress-io/cypress@1
+
+executors:
+  front:
+    docker:
+      - image: circleci/node
+  docker:
+    docker:
+      - image: docker:stable
+
+jobs:
+  front-install-dependencies:
+    executor: front
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+            - v1-packaging-front-dependencies-{{ checksum "package-lock.json" }}
+            - v1-packaging-front-dependencies-
+      - run:
+          name: install-dependencies
+          command: npm ci
+      - save_cache:
+          paths:
+            - ./node_modules
+          key: v1-packaging-front-dependencies-{{ checksum "package-lock.json" }}
+  front-qc-prettier:
+    executor: front
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+            - v1-packaging-front-dependencies-{{ checksum "package-lock.json" }}
+            - v1-packaging-front-dependencies-
+      - run:
+          name: qc-prettier
+          command: npm run prettier:check
+  front-build:
+    executor: front
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+            - v1-packaging-front-dependencies-{{ checksum "package-lock.json" }}
+            - v1-packaging-front-dependencies-
+      - run:
+          name: build
+          command: npm run build
+  front-unit-test:
+    executor: front
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+            - v1-packaging-front-dependencies-{{ checksum "package-lock.json" }}
+            - v1-packaging-front-dependencies-
+      - run:
+          name: unit-test
+          command: npm run test:unit
+  front-docker-build-and-push:
+    executor: docker
+    steps:
+      - checkout
+      - setup_remote_docker:
+          version: 19.03.13
+          docker_layer_caching: true
+      - run:
+          name: docker login
+          command: docker login -u $DOCKERHUB_USERNAME -p $DOCKERHUB_PASS
+      - run:
+          name: docker build
+          command: docker build -t ked57/workshop-front .
+      - run:
+          name: docker push
+          command: docker push ked57/workshop-front
+
+workflows:
+  qc-test-deploy:
+    jobs:
+      - front-install-dependencies
+      - front-qc-prettier:
+          requires:
+            - front-install-dependencies
+      - front-build:
+          requires:
+            - front-install-dependencies
+      - front-unit-test:
+          requires:
+            - front-install-dependencies
+      - cypress/install:
+          cache-key: >-
+            v1-packaging-front-dependencies-cypress-{{ checksum "package-lock.json" }}
+      - cypress/run:
+          name: chrome-cypress-run
+          requires:
+            - cypress/install
+          cache-key: >-
+            v1-packaging-front-dependencies-cypress-{{ checksum "package-lock.json" }}
+          start: npm start
+          wait-on: "http://localhost:1234"
+          executor: cypress/browsers-chrome78-ff70
+          browser: chrome
+          parallel: true
+          parallelism: 2
+      - cypress/run:
+          name: firefox-cypress-run
+          requires:
+            - cypress/install
+          cache-key: >-
+            v1-packaging-front-dependencies-cypress-{{ checksum "package-lock.json" }}
+          start: npm start
+          wait-on: "http://localhost:1234"
+          executor: cypress/browsers-chrome78-ff70
+          browser: firefox
+          parallel: true
+          parallelism: 2
+      - front-docker-build-and-push:
+          requires:
+            - firefox-cypress-run
+            - chrome-cypress-run
+            - front-unit-test
+            - front-build
+            - front-qc-prettier
