@@ -7,6 +7,6 @@ describe("Home page", function () {
   });
 
   it("renders the home page", function () {
-    cy.get(".content").should("contain", "home");
+    cy.get(".container").should("contain.html", "button");
   });
 });
