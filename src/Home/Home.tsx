@@ -22,7 +22,7 @@ const Home: React.FC = () => {
     const [result, err] = await of(
       fetchAPI(fetch, API_URL, { message: input })
     );
-    if (!err) {
+    if (err) {
       setFetchError(JSON.stringify(err));
       return;
     }
@@ -37,7 +37,9 @@ const Home: React.FC = () => {
         {t("app.send")}
       </button>
       {result ? (
-        <p>{`${t("app.result")}: ${result.score}% ${result.label}`}</p>
+        <p>{`${t("app.result")}: ${Math.round(result.score)}%, ${
+          result.label
+        }`}</p>
       ) : (
         ""
       )}
